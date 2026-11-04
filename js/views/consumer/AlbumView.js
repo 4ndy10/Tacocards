@@ -1,20 +1,46 @@
-// ponytail: Album view with collection cards, coupons tab and full-screen card lightbox
+// ponytail: Album view with functional sorting, full-view 3D card lightbox, rich sharing, and coupons integration
 import { getState, setState } from '../../state.js';
-import { locals, goldenLocal, rarityLabel, couponsData } from '../../data/mockData.js';
+import { locals, goldenLocal, rarityLabel } from '../../data/mockData.js';
 import { getIconSvg } from '../../components/Icon.js';
 import { createTradingCard } from '../../components/TradingCard.js';
-import { createButton } from '../../components/Button.js';
+import { renderCouponsView } from './CouponsView.js';
 
 let activeTab = 'cards'; // 'cards' | 'coupons'
 let activeRarityFilter = 'Todas';
+
+const rarityRank = {
+  legendaria: 4,
+  epica: 3,
+  rara: 2,
+  comun: 1
+};
 
 export function renderAlbumView() {
   const state = getState();
   const allCards = [...locals, goldenLocal];
 
-  const filteredCards = allCards.filter(c => {
+  // 1. Filter by rarity
+  let cards = allCards.filter(c => {
     if (activeRarityFilter === 'Todas') return true;
     return rarityLabel[c.rarity] === activeRarityFilter;
+  });
+
+  // 2. Sort according to state.albumSortOrder
+  const sortOrder = state.albumSortOrder || 'recent';
+  cards.sort((a, b) => {
+    if (sortOrder === 'rarity') {
+      const diff = (rarityRank[b.rarity] || 0) - (rarityRank[a.rarity] || 0);
+      return diff !== 0 ? diff : a.id - b.id;
+    }
+    if (sortOrder === 'name') {
+      return a.name.localeCompare(b.name);
+    }
+    // 'recent': unlocked cards first, then by id descending
+    const aUnlocked = state.unlockedCardIds.includes(a.id);
+    const bUnlocked = state.unlockedCardIds.includes(b.id);
+    if (aUnlocked && !bUnlocked) return -1;
+    if (!aUnlocked && bUnlocked) return 1;
+    return b.id - a.id;
   });
 
   const container = document.createElement('div');
@@ -58,6 +84,18 @@ export function renderAlbumView() {
         <span>Legendaria <strong>1/5</strong></span>
       </div>
 
+      <!-- Barra de Ordenamiento y Filtros -->
+      <div class="album-controls-row">
+        <div class="sort-selector-group">
+          <label for="album-sort-select">Ordenar:</label>
+          <select id="album-sort-select" class="album-sort-select">
+            <option value="recent" ${sortOrder === 'recent' ? 'selected' : ''}>Más recientes</option>
+            <option value="rarity" ${sortOrder === 'rarity' ? 'selected' : ''}>Rareza</option>
+            <option value="name" ${sortOrder === 'name' ? 'selected' : ''}>Local (A-Z)</option>
+          </select>
+        </div>
+      </div>
+
       <div class="map-filters album-filter" role="tablist" aria-label="Filtro de rareza">
         ${['Todas', 'Común', 'Rara', 'Épica', 'Legendaria'].map(r => `
           <button type="button" class="filter-chip ${activeRarityFilter === r ? 'active' : ''}" data-rarity="${r}">
@@ -67,7 +105,7 @@ export function renderAlbumView() {
       </div>
 
       <div class="album-grid">
-        ${filteredCards.map(c => `
+        ${cards.map(c => `
           <div class="album-card-slot" id="card-slot-${c.id}">
             ${c.id === 7 && state.plan === 'free' ? `
               <span class="pass-label">
@@ -78,36 +116,15 @@ export function renderAlbumView() {
         `).join('')}
       </div>
     ` : `
-      <div class="coupons-view ${state.plan === 'free' ? 'feature-locked' : ''}">
-        <div class="coupon-list">
-          ${couponsData.map(cp => `
-            <article class="coupon-item">
-              <span class="coupon-discount">${cp.discount}</span>
-              <div class="coupon-info">
-                <strong>${cp.title}</strong>
-                <small>${cp.subtitle}</small>
-              </div>
-            </article>
-          `).join('')}
-        </div>
-
-        ${state.plan === 'free' ? `
-          <div class="locked-message">
-            ${getIconSvg('lock', 32)}
-            <strong>Cupones exclusivos</strong>
-            <small>Disponibles con el Pase Taquero de $39/mes</small>
-            <button type="button" class="upgrade-btn-inline" id="go-pass-btn">Obtener Pase</button>
-          </div>
-        ` : ''}
-      </div>
+      <div id="coupons-mount"></div>
     `}
 
     <div id="lightbox-mount"></div>
   `;
 
-  // Mount compact cards into slots
+  // Mount cards or coupons
   if (activeTab === 'cards') {
-    filteredCards.forEach(cardData => {
+    cards.forEach(cardData => {
       const slot = container.querySelector(`#card-slot-${cardData.id}`);
       if (slot) {
         const isLocked = cardData.id === 7 ? state.plan === 'free' : !state.unlockedCardIds.includes(cardData.id);
@@ -126,26 +143,35 @@ export function renderAlbumView() {
     container.querySelectorAll('[data-rarity]').forEach(btn => {
       btn.addEventListener('click', () => {
         activeRarityFilter = btn.dataset.rarity;
-        renderAlbumView();
+        const fresh = renderAlbumView();
+        container.replaceWith(fresh);
       });
     });
+
+    // Sort select change
+    const sortSelect = container.querySelector('#album-sort-select');
+    if (sortSelect) {
+      sortSelect.addEventListener('change', (e) => {
+        setState({ albumSortOrder: e.target.value }, false);
+        const fresh = renderAlbumView();
+        container.replaceWith(fresh);
+      });
+    }
+  } else {
+    const couponsMount = container.querySelector('#coupons-mount');
+    if (couponsMount) {
+      couponsMount.appendChild(renderCouponsView());
+    }
   }
 
   // Tabs click
   container.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       activeTab = btn.dataset.tab;
-      renderAlbumView();
+      const fresh = renderAlbumView();
+      container.replaceWith(fresh);
     });
   });
-
-  // Upgrade CTA in coupons
-  const goPassBtn = container.querySelector('#go-pass-btn');
-  if (goPassBtn) {
-    goPassBtn.addEventListener('click', () => {
-      setState({ consumerView: 'profile' });
-    });
-  }
 
   return container;
 }
@@ -154,65 +180,81 @@ function openCardLightbox(local, container) {
   const mount = container.querySelector('#lightbox-mount');
   if (!mount) return;
 
-  let flipped = false;
+  let isFlipped = false;
   let shared = false;
 
   const lightbox = document.createElement('div');
   lightbox.className = 'card-lightbox';
 
-  function renderModal() {
-    lightbox.innerHTML = `
-      <div class="card-modal">
-        <button type="button" class="lightbox-close" aria-label="Cerrar">×</button>
-        <div class="lightbox-card-slot"></div>
-        <div class="lightbox-actions">
-          <button type="button" class="button button-primary" id="lightbox-flip-btn">
-            ${getIconSvg(flipped ? 'back' : 'card', 16)} ${flipped ? 'Ver frente' : 'Girar carta'}
-          </button>
-          <button type="button" class="button button-outline" id="lightbox-share-btn">
-            ${getIconSvg('arrow', 16)} ${shared ? '¡Enlace copiado!' : 'Compartir'}
-          </button>
-        </div>
+  lightbox.innerHTML = `
+    <div class="card-modal" role="dialog" aria-modal="true" aria-label="Vista detallada de ${local.name}">
+      <button type="button" class="lightbox-close" aria-label="Cerrar">&times;</button>
+      <div class="lightbox-card-slot" id="lightbox-card-slot"></div>
+      <div class="lightbox-actions">
+        <button type="button" class="button button-primary" id="lightbox-flip-btn">
+          ${getIconSvg('card', 16)} Girar carta
+        </button>
+        <button type="button" class="button button-outline" id="lightbox-share-btn">
+          ${getIconSvg('arrow', 16)} Compartir
+        </button>
       </div>
-    `;
+    </div>
+  `;
 
-    const cardSlot = lightbox.querySelector('.lightbox-card-slot');
-    cardSlot.appendChild(createTradingCard({
-      local,
-      compact: false,
-      forcedFlipped: flipped,
-      onActivate: () => {
-        flipped = !flipped;
-        renderModal();
-      }
-    }));
+  const cardSlot = lightbox.querySelector('#lightbox-card-slot');
+  const cardEl = createTradingCard({
+    local,
+    compact: false,
+    preview: false,
+    onActivate: () => toggleFlip()
+  });
+  cardSlot.appendChild(cardEl);
 
-    lightbox.querySelector('.lightbox-close').addEventListener('click', () => lightbox.remove());
-    lightbox.addEventListener('click', (e) => {
-      if (e.target === lightbox) lightbox.remove();
-    });
+  const flipBtn = lightbox.querySelector('#lightbox-flip-btn');
+  const shareBtn = lightbox.querySelector('#lightbox-share-btn');
+  const closeBtn = lightbox.querySelector('.lightbox-close');
 
-    lightbox.querySelector('#lightbox-flip-btn').addEventListener('click', () => {
-      flipped = !flipped;
-      renderModal();
-    });
-
-    lightbox.querySelector('#lightbox-share-btn').addEventListener('click', async () => {
-      const shareData = {
-        title: `${local.name} · TacoCards Tijuana`,
-        text: `Descubre la historia de ${local.name} y colecciona su carta en TacoCards Tijuana.`,
-        url: window.location.href
-      };
-      if (navigator.share) {
-        try { await navigator.share(shareData); } catch (e) { /* ignore cancel */ }
-      } else if (navigator.clipboard) {
-        await navigator.clipboard.writeText(`${shareData.text} ${shareData.url}`);
-      }
-      shared = true;
-      lightbox.querySelector('#lightbox-share-btn').innerHTML = `${getIconSvg('check', 16)} ¡Enlace copiado!`;
-    });
+  function toggleFlip() {
+    isFlipped = !isFlipped;
+    cardEl.classList.toggle('flipped', isFlipped);
+    flipBtn.innerHTML = `${getIconSvg(isFlipped ? 'back' : 'card', 16)} ${isFlipped ? 'Ver frente' : 'Girar carta'}`;
   }
 
-  renderModal();
+  flipBtn.addEventListener('click', toggleFlip);
+
+  // Close handlers
+  const closeLightbox = () => lightbox.remove();
+  closeBtn.addEventListener('click', closeLightbox);
+  lightbox.addEventListener('click', (e) => {
+    if (e.target === lightbox) closeLightbox();
+  });
+
+  // Rich text share
+  shareBtn.addEventListener('click', async () => {
+    const rarityText = rarityLabel[local.rarity] || 'Especial';
+    const linkUrl = `${window.location.origin}${window.location.pathname}#/local/${local.id}`;
+    const shareText = `¡Acabo de desbloquear la carta ${rarityText} de ${local.name} en TacoCards Tijuana! Mírala aquí: ${linkUrl}`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `Carta ${rarityText} de ${local.name} · TacoCards Tijuana`,
+          text: shareText,
+          url: linkUrl
+        });
+      } catch (e) {
+        // User dismissed native share sheet
+      }
+    } else if (navigator.clipboard) {
+      await navigator.clipboard.writeText(shareText);
+    }
+
+    shared = true;
+    shareBtn.innerHTML = `${getIconSvg('check', 16)} ¡Copiado!`;
+    setTimeout(() => {
+      shareBtn.innerHTML = `${getIconSvg('arrow', 16)} Compartir`;
+    }, 2500);
+  });
+
   mount.appendChild(lightbox);
 }

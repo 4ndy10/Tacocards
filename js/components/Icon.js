@@ -1,4 +1,4 @@
-// ponytail: Native SVG icon helper. Returns an SVGElement or SVG string without external icon fonts.
+// ponytail: Native SVG icon helper with semantic culinary symbols. Zero external icon fonts.
 
 const iconPaths = {
   album: '<rect x="4" y="3" width="16" height="18" rx="2" /><path d="M8 3v18M11 8h6M11 12h6" />',
@@ -24,7 +24,14 @@ const iconPaths = {
   star: '<path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-2.9-5.6 2.9 1.1-6.2L3 9.6l6.2-.9L12 3Z" />',
   ticket: '<path d="M3 8a3 3 0 0 0 0 6v4h18v-4a3 3 0 0 0 0-6V4H3v4ZM13 7h4M13 11h4M13 15h2" />',
   trend: '<path d="m3 17 6-6 4 4 8-9M15 6h6v6" />',
-  wallet: '<path d="M4 6h15a2 2 0 0 1 2 2v11H4a2 2 0 0 1-2-2V6a3 3 0 0 1 3-3h12v3M16 11h5v4h-5a2 2 0 0 1 0-4Z" />'
+  wallet: '<path d="M4 6h15a2 2 0 0 1 2 2v11H4a2 2 0 0 1-2-2V6a3 3 0 0 1 3-3h12v3M16 11h5v4h-5a2 2 0 0 1 0-4Z" />',
+  
+  // Semantic food icons for map markers
+  taco: '<path d="M3 17C4.5 9 10 5 18 6.5c-4.5 1-8 4.5-10 10.5l-5-1ZM9.5 17.5c1.8-5 5.5-7.5 11.5-6.5-3.5 1-6 3.5-7 6.5h-4.5Z" />',
+  fish: '<path d="M2 16c5-2 9-6 11-10 3 4 7 8 9 9-4 2-8 3-11 2-2 3-5 4-9-1Z" /><circle cx="16" cy="8" r="1.2" fill="currentColor"/>',
+  goat: '<path d="M4 10h16c0 6-3 9-8 9s-8-3-8-9Z" /><path d="M2 10h20M8 6c0-2 2-2 2-4M13 7c0-2 2-2 2-4" />',
+  dessert: '<path d="M5 11h14l-1 9H6l-1-9ZM7 11c0-4 2-6 5-6s5 2 5 6M12 5V2" />',
+  cutlery: '<path d="M5 4v6a2 2 0 0 0 2 2v8M7 4v6M9 4v6a2 2 0 0 1-2 2M15 4v16M13 4h4a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-4V4Z" />'
 };
 
 export function getIconSvg(name, size = 20) {

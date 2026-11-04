@@ -1,8 +1,7 @@
-// ponytail: Loyalty stamp card with locked state, 8 stamps, and redemption code generation
-import { getState, setState } from '../../state.js';
+// ponytail: Consumer loyalty view with sequential (+1) visit simulation and passive in-store validation screen
+import { getState, setState, incrementVisit, resetVisits } from '../../state.js';
 import { getIconSvg } from '../../components/Icon.js';
-import { createButton } from '../../components/Button.js';
-import { navigateTo } from '../../router.js';
+import { createFakeQR } from '../../components/FakeQR.js';
 
 export function renderLoyaltyView() {
   const state = getState();
@@ -24,28 +23,41 @@ export function renderLoyaltyView() {
         </div>
         <span class="kicker">Tacos El Cometa</span>
         <h2>Visita ${state.visits}/3</h2>
-        <p>Escanea el QR una vez más en el local para abrir la tarjeta exclusiva de sellos y recompensas.</p>
-        <div class="three-visits">
-          <i class="${state.visits >= 1 ? 'done' : ''}"></i>
-          <i class="${state.visits >= 2 ? 'done' : ''}"></i>
-          <i class="${state.visits >= 3 ? 'done' : ''}"></i>
+        <p>Muestra tu pantalla en caja en cada consumo. Al llegar a 3 visitas desbloquearás la tarjeta de sellos y tu carta exclusiva.</p>
+        
+        <div class="three-visits" aria-label="Progreso de 3 visitas">
+          <i class="${state.visits >= 1 ? 'done' : ''}" title="Visita 1"></i>
+          <i class="${state.visits >= 2 ? 'done' : ''}" title="Visita 2"></i>
+          <i class="${state.visits >= 3 ? 'done' : ''}" title="Visita 3"></i>
         </div>
 
         <div class="demo-box" style="margin-top: 24px;">
           <div class="demo-box-text">
-            <strong>Atajo de Demostración</strong>
-            <small>Completa las 3 visitas para ver la tarjeta.</small>
+            <strong>Simulación para el Pitch</strong>
+            <small>Avanza paso a paso para ver la transición a tarjeta activa.</small>
           </div>
-          <button type="button" class="button button-outline" id="simulate-third-visit">
-            Desbloquear ahora
-          </button>
+          <div class="demo-actions-row">
+            <button type="button" class="button button-primary" id="btn-add-visit">
+              +1 Visita (${state.visits} &rarr; ${state.visits + 1})
+            </button>
+            <button type="button" class="button button-quiet" id="btn-reset-visits" title="Reiniciar a 0">
+              ${getIconSvg('reset', 14)} 0
+            </button>
+          </div>
         </div>
       </div>
     `;
 
-    container.querySelector('#simulate-third-visit').addEventListener('click', () => {
-      setState({ visits: 3, stamps: 1 });
-      renderLoyaltyView();
+    container.querySelector('#btn-add-visit').addEventListener('click', () => {
+      incrementVisit();
+      const fresh = renderLoyaltyView();
+      container.replaceWith(fresh);
+    });
+
+    container.querySelector('#btn-reset-visits').addEventListener('click', () => {
+      resetVisits();
+      const fresh = renderLoyaltyView();
+      container.replaceWith(fresh);
     });
 
     return container;
@@ -107,15 +119,32 @@ export function renderLoyaltyView() {
       <p class="stamp-disclaimer">Un sello por visita con consumo. Los premios los cubre el negocio.</p>
     </div>
 
-    ${state.stamps < 4 ? `
-      <div class="demo-box">
-        <div class="demo-box-text">
-          <strong>Modo demostración</strong>
-          <small>Avanza los sellos para probar el canje en caja.</small>
-        </div>
-        <button type="button" class="button button-outline" id="advance-stamps-btn">
-          Simular sello 4
+    <!-- Barra de Simulación Secuencial -->
+    <div class="demo-box">
+      <div class="demo-box-text">
+        <strong>Simular progreso en vivo</strong>
+        <small>Total visitas: ${state.visits} · Sellos: ${state.stamps}/8</small>
+      </div>
+      <div class="demo-actions-row">
+        <button type="button" class="button button-outline" id="btn-advance-visit">
+          +1 Visita (${state.stamps < 8 ? `Sello ${state.stamps + 1}` : 'Max'})
         </button>
+        <button type="button" class="button button-quiet" id="btn-reset-unlocked" title="Reiniciar a 0">
+          ${getIconSvg('reset', 14)} Reiniciar
+        </button>
+      </div>
+    </div>
+
+    <!-- Pantalla pasiva de validación en caja (cuando no hay premio pendiente de canje) -->
+    ${!state.code && state.stamps < 4 ? `
+      <div class="passive-scan-panel">
+        <div class="passive-scan-badge">
+          ${getIconSvg('shop', 16)} Validación en mostrador
+        </div>
+        <h3>Muestra esta pantalla en caja para recibir tu sello</h3>
+        <p>El personal escaneará tu código para sumar tu visita a la tarjeta.</p>
+        <div class="passive-qr-holder" id="passive-stamp-qr"></div>
+        <div class="passive-pin-chip">ID de cliente: TC-${state.userProfile?.avatar || 'ALEX'}-884</div>
       </div>
     ` : ''}
 
@@ -123,7 +152,7 @@ export function renderLoyaltyView() {
       <div class="claim-box">
         <span class="kicker">Premio disponible</span>
         <h3>Tu taco corre por la casa</h3>
-        <p>Genera un código de 6 caracteres y muéstralo al taquero en caja. Expira en 10 minutos.</p>
+        <p>Genera tu código de canje para mostrarlo al personal en caja. Válido durante tu visita.</p>
         <button type="button" class="button button-primary full-width-btn" id="claim-prize-btn">
           ${getIconSvg('ticket', 18)} Canjear premio en caja
         </button>
@@ -131,47 +160,62 @@ export function renderLoyaltyView() {
     ` : ''}
 
     ${state.code ? `
-      <div class="code-box">
-        <div class="code-icon-circle">
-          ${getIconSvg('check', 24)}
+      <!-- Pantalla pasiva de canje de premio -->
+      <div class="passive-redemption-screen">
+        <div class="passive-redemption-badge">
+          ${getIconSvg('check', 18)} Listo para canjear en caja
         </div>
-        <span class="kicker">Código listo para validar</span>
+        <span class="kicker">Tacos El Cometa</span>
         <h2 class="code-display">${state.code}</h2>
-        <p>Pasa a la vista <strong>Locatario &gt; Canjes</strong> para simular la validación en caja.</p>
+        <div class="passive-qr-holder" id="passive-prize-qr"></div>
+        <p class="passive-instruction-text">
+          Muestra esta pantalla al taquero en caja para validar y recibir tu premio.
+        </p>
         <small class="expiry-note">
-          ${getIconSvg('clock', 14)} Expira en 09:42 min
+          ${getIconSvg('clock', 14)} Válido por 09:42 min
         </small>
-        <div class="code-actions">
-          <button type="button" class="button button-outline" id="switch-to-merchant">
-            ${getIconSvg('shop', 16)} Abrir caja del Locatario
-          </button>
-        </div>
+        <button type="button" class="button button-quiet cancel-claim-btn" id="btn-close-code">
+          Cerrar pantalla
+        </button>
       </div>
     ` : ''}
   `;
 
-  const advanceBtn = container.querySelector('#advance-stamps-btn');
-  if (advanceBtn) {
-    advanceBtn.addEventListener('click', () => {
-      setState({ stamps: 4 });
-      renderLoyaltyView();
-    });
+  // Attach QR codes
+  const stampQrSlot = container.querySelector('#passive-stamp-qr');
+  if (stampQrSlot) {
+    stampQrSlot.appendChild(createFakeQR({ small: true }));
   }
 
-  const claimBtn = container.querySelector('#claim-prize-btn');
-  if (claimBtn) {
-    claimBtn.addEventListener('click', () => {
-      setState({ code: 'TC-345', codeExpires: Date.now() + 600000, validated: false });
-      renderLoyaltyView();
-    });
+  const prizeQrSlot = container.querySelector('#passive-prize-qr');
+  if (prizeQrSlot) {
+    prizeQrSlot.appendChild(createFakeQR({ small: false }));
   }
 
-  const switchMerchantBtn = container.querySelector('#switch-to-merchant');
-  if (switchMerchantBtn) {
-    switchMerchantBtn.addEventListener('click', () => {
-      setState({ role: 'business', businessView: 'redeem' });
-    });
-  }
+  // Event handlers
+  container.querySelector('#btn-advance-visit')?.addEventListener('click', () => {
+    incrementVisit();
+    const fresh = renderLoyaltyView();
+    container.replaceWith(fresh);
+  });
+
+  container.querySelector('#btn-reset-unlocked')?.addEventListener('click', () => {
+    resetVisits();
+    const fresh = renderLoyaltyView();
+    container.replaceWith(fresh);
+  });
+
+  container.querySelector('#claim-prize-btn')?.addEventListener('click', () => {
+    setState({ code: 'TC-345', codeExpires: Date.now() + 600000, validated: false });
+    const fresh = renderLoyaltyView();
+    container.replaceWith(fresh);
+  });
+
+  container.querySelector('#btn-close-code')?.addEventListener('click', () => {
+    setState({ code: '', codeExpires: null });
+    const fresh = renderLoyaltyView();
+    container.replaceWith(fresh);
+  });
 
   return container;
 }
