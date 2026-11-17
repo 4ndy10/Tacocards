@@ -181,15 +181,15 @@ export function renderLoyaltyView() {
     ` : ''}
   `;
 
-  // Attach QR codes
+  // Attach QR codes with embedded business emblem
   const stampQrSlot = container.querySelector('#passive-stamp-qr');
   if (stampQrSlot) {
-    stampQrSlot.appendChild(createFakeQR({ small: true }));
+    stampQrSlot.appendChild(createFakeQR({ small: true, logo: 'TEC', sublabel: 'COMETA', icon: 'taco' }));
   }
 
   const prizeQrSlot = container.querySelector('#passive-prize-qr');
   if (prizeQrSlot) {
-    prizeQrSlot.appendChild(createFakeQR({ small: false }));
+    prizeQrSlot.appendChild(createFakeQR({ small: false, logo: 'TEC', sublabel: 'COMETA', icon: 'taco' }));
   }
 
   // Event handlers

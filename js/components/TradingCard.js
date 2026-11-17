@@ -151,10 +151,13 @@ export function createTradingCard({
 
   card.innerHTML = `<div class="card-tilt">${frontHtml}${backHtml}</div>`;
 
-  // Attach small QR to back
+  // Attach small QR to back with embedded business/TacoCards initials
   const backQrSlot = card.querySelector('.back-qr-slot');
   if (backQrSlot) {
-    backQrSlot.appendChild(createFakeQR({ small: true }));
+    const localInitials = local.id === 7
+      ? 'TC'
+      : local.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 3);
+    backQrSlot.appendChild(createFakeQR({ small: true, logo: localInitials }));
   }
 
   return card;

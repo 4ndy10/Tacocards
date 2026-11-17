@@ -1,14 +1,19 @@
 // ponytail: One runnable assert-based check for core logic (state, data, calculations, icons, visits)
 import assert from 'node:assert';
-import { locals, goldenLocal, rarityLabel, cardDetails, couponsData } from './js/data/mockData.js';
+import { locals, goldenLocal, rarityLabel, cardDetails, couponsData, businessKpis } from './js/data/mockData.js';
 import { getIconSvg } from './js/components/Icon.js';
-import { getState, setState, incrementVisit, resetVisits, updateVolatileProfile } from './js/state.js';
+import { getState, setState, incrementVisit, resetVisits, updateVolatileProfile, toggleTheme } from './js/state.js';
 
 // 1. Data Integrity Checks
 assert.strictEqual(locals.length, 6, 'Should have 6 standard locals');
 assert.strictEqual(goldenLocal.id, 7, 'Golden local should have id 7');
 assert.strictEqual(goldenLocal.rarity, 'legendaria', 'Golden card must be legendaria');
 assert.ok(couponsData.length >= 3, 'Should have at least 3 coupons');
+assert.strictEqual(businessKpis.length, 5, 'Should have 5 business KPIs');
+assert.strictEqual(businessKpis[0].label, 'Visitas con QR', 'First featured KPI must be Visitas con QR');
+businessKpis.forEach(kpi => {
+  assert.strictEqual(kpi.series.length, 7, `KPI ${kpi.label} must have 7 daily points for line chart overlay`);
+});
 
 // Check coordinates, arts, and pins
 locals.forEach(loc => {
@@ -18,11 +23,20 @@ locals.forEach(loc => {
   assert.ok(cardDetails[loc.id], `Card details must exist for local ${loc.id}`);
 });
 
-// 2. Icon SVGs test (Semantic culinary icons)
-['taco', 'fish', 'goat', 'dessert', 'cutlery'].forEach(name => {
+// 2. Icon SVGs test (Semantic culinary icons + theme icons)
+['taco', 'fish', 'goat', 'dessert', 'cutlery', 'sun', 'moon', 'user'].forEach(name => {
   const svg = getIconSvg(name, 18);
   assert.ok(svg.includes('<svg') && svg.includes('</svg>'), `Icon ${name} must produce valid SVG`);
 });
+
+// 3. Theme System Check (Light & Dark Mode persistence)
+assert.ok(['light', 'dark'].includes(getState().theme), 'Initial state must include valid theme');
+const startTheme = getState().theme;
+const flippedTheme = toggleTheme();
+assert.strictEqual(flippedTheme, startTheme === 'dark' ? 'light' : 'dark', 'toggleTheme() must flip between light and dark');
+assert.strictEqual(getState().theme, flippedTheme, 'State must reflect new theme');
+setState({ theme: 'light' });
+assert.strictEqual(getState().theme, 'light', 'Theme should reset to light');
 
 // 3. Volatile Profile & Sequential Visits Test
 const initialState = getState();

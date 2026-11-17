@@ -69,6 +69,18 @@ export function openDevModal() {
       </div>
 
       <div class="dev-section">
+        <label>Tema Visual (Accesibilidad)</label>
+        <div class="dev-btn-group">
+          <button type="button" class="dev-opt ${state.theme !== 'dark' ? 'active' : ''}" data-theme-opt="light">
+            ${getIconSvg('sun', 16)} Modo Claro
+          </button>
+          <button type="button" class="dev-opt ${state.theme === 'dark' ? 'active' : ''}" data-theme-opt="dark">
+            ${getIconSvg('moon', 16)} Modo Oscuro
+          </button>
+        </div>
+      </div>
+
+      <div class="dev-section">
         <label>Accesos Rápidos para el Pitch</label>
         <div class="dev-actions-grid">
           <button type="button" class="dev-action-btn" id="dev-unlock-loyalty">
@@ -105,6 +117,14 @@ export function openDevModal() {
     btn.addEventListener('click', () => {
       const plan = btn.dataset.plan;
       setState({ plan });
+      closeDevModal();
+    });
+  });
+
+  modalElement.querySelectorAll('[data-theme-opt]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const theme = btn.dataset.themeOpt;
+      setState({ theme });
       closeDevModal();
     });
   });

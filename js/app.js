@@ -1,5 +1,5 @@
 // ponytail: Main orchestrator for TacoCards Tijuana Mobile PWA.
-import { getState, subscribe } from './state.js';
+import { getState, subscribe, applyThemeToDom } from './state.js';
 import { initRouter } from './router.js';
 
 // Consumer views
@@ -33,9 +33,10 @@ function renderApp() {
 
   root.innerHTML = '';
   const state = getState();
+  applyThemeToDom(state.theme);
 
   const appContainer = document.createElement('div');
-  appContainer.className = `mobile-pwa-root ${state.role}-mode`;
+  appContainer.className = `mobile-pwa-root ${state.role}-mode theme-${state.theme || 'light'}`;
 
   if (state.role === 'consumer') {
     let viewElement;

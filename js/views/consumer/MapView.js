@@ -1,5 +1,5 @@
 // ponytail: Mobile map view with semantic SVG pins, discovery carousel, in-place DOM updates, and premium routes
-import { getState, setState } from '../../state.js';
+import { getState, setState, toggleTheme } from '../../state.js';
 import { locals, rarityLabel } from '../../data/mockData.js';
 import { navigateTo } from '../../router.js';
 import { getIconSvg } from '../../components/Icon.js';
@@ -59,14 +59,21 @@ export function renderMapView() {
   const userGreetingName = state.userProfile?.name && state.userProfile.name !== 'Usuario no registrado'
     ? state.userProfile.name.split(' ')[0]
     : 'Alex';
+  const isDark = state.theme === 'dark';
 
   container.innerHTML = `
     <header class="consumer-greeting">
       <div class="greeting-brand-row">
         <span>¡Hola, ${userGreetingName}!</span>
-        <div class="screen-brand" id="brand-logo-trigger" title="Triple toque para menú de pitch">
-          <i>TC</i>
-          <span><strong>TacoCards</strong><small>TIJUANA</small></span>
+        <div class="dashboard-header-actions">
+          <button type="button" class="theme-toggle-btn" id="map-theme-toggle" aria-label="Alternar entre Modo Claro y Modo Oscuro">
+            ${getIconSvg(isDark ? 'sun' : 'moon', 18)}
+            <span>${isDark ? 'Claro' : 'Oscuro'}</span>
+          </button>
+          <div class="screen-brand" id="brand-logo-trigger" title="Triple toque para menú de pitch">
+            <i>TC</i>
+            <span><strong>TacoCards</strong><small>TIJUANA</small></span>
+          </div>
         </div>
       </div>
       <h2>¿Qué se te antoja hoy?</h2>
@@ -170,6 +177,11 @@ export function renderMapView() {
   // Attach dev trigger to brand logo
   const logoTrigger = container.querySelector('#brand-logo-trigger');
   initDevModalTrigger(logoTrigger);
+
+  // Theme toggle button
+  container.querySelector('#map-theme-toggle')?.addEventListener('click', () => {
+    toggleTheme();
+  });
 
   // In-place selection updater (instant DOM reactivity without tearing down tree)
   function selectLocalInPlace(localId) {

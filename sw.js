@@ -19,6 +19,7 @@ const ASSETS_TO_CACHE = [
   '/js/views/consumer/DetailView.js',
   '/js/views/consumer/ScanView.js',
   '/js/views/consumer/AlbumView.js',
+  '/js/views/consumer/CouponsView.js',
   '/js/views/consumer/LoyaltyView.js',
   '/js/views/consumer/ProfileView.js',
   '/js/views/business/BusinessNav.js',

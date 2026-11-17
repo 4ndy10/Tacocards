@@ -1,9 +1,10 @@
-// ponytail: Pure Button component returning HTMLButtonElement with touch-friendly 44px target
+// ponytail: Pure Button component returning HTMLButtonElement with accessible >=56px touch target
 import { getIconSvg } from './Icon.js';
 
 export function createButton({
   text = '',
   icon = null,
+  iconSize = 22,
   variant = 'primary', // 'primary' | 'outline' | 'quiet' | 'teal'
   className = '',
   disabled = false,
@@ -16,7 +17,7 @@ export function createButton({
   btn.disabled = disabled;
 
   let inner = '';
-  if (icon) inner += getIconSvg(icon, 18);
+  if (icon) inner += getIconSvg(icon, iconSize);
   if (text) inner += `<span>${text}</span>`;
   btn.innerHTML = inner;
 

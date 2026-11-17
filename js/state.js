@@ -13,6 +13,7 @@ const DEFAULT_VOLATILE_PROFILE = {
 const DEFAULT_STATE = {
   role: 'consumer', // 'consumer' | 'business'
   plan: 'free',     // 'free' | 'premium'
+  theme: 'light',   // 'light' | 'dark'
   consumerView: 'map',
   businessView: 'dashboard',
   selectedLocalId: 1,
@@ -25,6 +26,12 @@ const DEFAULT_STATE = {
   albumSortOrder: 'recent' // 'recent' | 'rarity' | 'name'
 };
 
+export function applyThemeToDom(theme = 'light') {
+  if (typeof document !== 'undefined' && document.documentElement) {
+    document.documentElement.setAttribute('data-theme', theme);
+  }
+}
+
 function loadInitialState() {
   let loaded = { ...DEFAULT_STATE };
   try {
@@ -35,6 +42,11 @@ function loadInitialState() {
   } catch (e) {
     // Ignore and use defaults
   }
+
+  if (loaded.theme !== 'dark' && loaded.theme !== 'light') {
+    loaded.theme = 'light';
+  }
+  applyThemeToDom(loaded.theme);
 
   // Volatile profile strictly in RAM: resets to "Usuario no registrado" on page refresh
   return { ...loaded, userProfile: { ...DEFAULT_VOLATILE_PROFILE } };
@@ -61,10 +73,19 @@ export function getState() {
 
 export function setState(updates, notify = true) {
   currentState = { ...currentState, ...updates };
+  if (updates && updates.theme) {
+    applyThemeToDom(currentState.theme);
+  }
   saveState();
   if (notify) {
     listeners.forEach((fn) => fn(currentState));
   }
+}
+
+export function toggleTheme() {
+  const nextTheme = currentState.theme === 'dark' ? 'light' : 'dark';
+  setState({ theme: nextTheme });
+  return nextTheme;
 }
 
 // Updates profile strictly in volatile RAM
@@ -108,8 +129,10 @@ export function resetVisits() {
 export function resetDemoState() {
   currentState = {
     ...DEFAULT_STATE,
+    theme: currentState.theme || DEFAULT_STATE.theme,
     userProfile: { ...DEFAULT_VOLATILE_PROFILE }
   };
+  applyThemeToDom(currentState.theme);
   saveState();
   listeners.forEach((fn) => fn(currentState));
 }

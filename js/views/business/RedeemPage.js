@@ -1,29 +1,37 @@
 // ponytail: Cashier redemption page with sandbox validation against localStorage
-import { getState, setState } from '../../state.js';
+import { getState, setState, toggleTheme } from '../../state.js';
 import { getIconSvg } from '../../components/Icon.js';
-import { createButton } from '../../components/Button.js';
 import { navigateTo } from '../../router.js';
 
 export function renderRedeemPage() {
-  const state = getState();
-  const isFree = state.plan === 'free';
+  const initial = getState();
   const container = document.createElement('div');
   container.className = 'business-page narrow-page';
 
-  let inputVal = state.code || '';
-  let statusMessage = state.validated ? 'used' : 'idle'; // 'idle' | 'valid' | 'used' | 'invalid'
+  let inputVal = initial.code || '';
+  let statusMessage = initial.validated ? 'used' : 'idle'; // 'idle' | 'valid' | 'used' | 'invalid'
 
   function render() {
+    const state = getState();
+    const isFree = state.plan === 'free';
+    const isDark = state.theme === 'dark';
+
     container.innerHTML = `
-      <div class="page-heading">
-        <span class="biz-subtitle">Operación en mostrador</span>
-        <h2>Validar canje</h2>
-        <p>Escribe o escanea el código temporal que muestra el cliente en su pantalla.</p>
+      <div class="page-heading qr-page-heading">
+        <div>
+          <span class="biz-subtitle">Operación en mostrador</span>
+          <h2>Validar canje</h2>
+          <p>Escribe o escanea el código temporal que muestra el cliente en su pantalla.</p>
+        </div>
+        <button type="button" class="theme-toggle-btn" id="redeem-theme-toggle" aria-label="Cambiar entre modo claro y oscuro">
+          ${getIconSvg(isDark ? 'sun' : 'moon', 18)}
+          <span>${isDark ? 'Claro' : 'Oscuro'}</span>
+        </button>
       </div>
 
       ${isFree ? `
         <div class="upgrade-banner" id="redeem-upgrade-cta">
-          ${getIconSvg('lock', 16)}
+          ${getIconSvg('lock', 18)}
           <span>Validación de premios disponible en Plan Destacado</span>
         </div>
       ` : ''}
@@ -46,13 +54,13 @@ export function renderRedeemPage() {
         </div>
 
         <button type="button" class="button button-primary full-width-btn" id="validate-code-btn" ${!inputVal ? 'disabled' : ''}>
-          ${getIconSvg('check', 18)} Validar código en caja
+          ${getIconSvg('check', 20)} Validar código en caja
         </button>
 
         <div class="or-separator"><span>o</span></div>
 
         <button type="button" class="button button-outline full-width-btn" id="auto-fill-btn">
-          ${getIconSvg('scan', 16)} Simular escaneo de pantalla
+          ${getIconSvg('scan', 18)} Simular escaneo de pantalla
         </button>
 
         <div class="redeem-status-area">
@@ -106,6 +114,10 @@ export function renderRedeemPage() {
       </div>
     `;
 
+    container.querySelector('#redeem-theme-toggle')?.addEventListener('click', () => {
+      toggleTheme();
+    });
+
     const input = container.querySelector('#business-code-input');
     const validateBtn = container.querySelector('#validate-code-btn');
 
@@ -119,9 +131,10 @@ export function renderRedeemPage() {
     });
 
     validateBtn.addEventListener('click', () => {
-      if (state.validated && inputVal === state.code) {
+      const latest = getState();
+      if (latest.validated && inputVal === latest.code) {
         statusMessage = 'used';
-      } else if (state.code && inputVal === state.code.toUpperCase()) {
+      } else if (latest.code && inputVal === latest.code.toUpperCase()) {
         statusMessage = 'valid';
         setState({ validated: true });
       } else {
@@ -131,14 +144,14 @@ export function renderRedeemPage() {
     });
 
     container.querySelector('#auto-fill-btn').addEventListener('click', () => {
-      if (state.code) {
-        inputVal = state.code;
+      const latest = getState();
+      if (latest.code) {
+        inputVal = latest.code;
         input.value = inputVal;
         validateBtn.disabled = false;
         validateBtn.click();
       } else {
-        // Fallback demo code
-        setState({ code: 'TC-345' });
+        setState({ code: 'TC-345', validated: false }, false);
         inputVal = 'TC-345';
         input.value = inputVal;
         validateBtn.disabled = false;

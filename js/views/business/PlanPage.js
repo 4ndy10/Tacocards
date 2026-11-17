@@ -1,13 +1,11 @@
 // ponytail: Merchant subscription plan comparison and delivery commission savings calculator
-import { getState, setState } from '../../state.js';
+import { getState, setState, toggleTheme } from '../../state.js';
 import { getIconSvg } from '../../components/Icon.js';
 import { navigateTo } from '../../router.js';
 
 let ordersCount = 100;
 
 export function renderPlanPage() {
-  const state = getState();
-  const isFree = state.plan === 'free';
   const container = document.createElement('div');
   container.className = 'business-page plan-page';
 
@@ -17,14 +15,23 @@ export function renderPlanPage() {
   }
 
   function render() {
+    const state = getState();
+    const isFree = state.plan === 'free';
+    const isDark = state.theme === 'dark';
     const deliveryFee = calculateDeliveryFee(ordersCount);
     const savings = Math.max(0, deliveryFee - 249);
 
     container.innerHTML = `
-      <div class="page-heading">
-        <span class="biz-subtitle">Rentabilidad para tu negocio</span>
-        <h2>Planes y Ahorro</h2>
-        <p>Compara el costo fijo mensual de TacoCards frente al 30% de comisión de las plataformas de delivery.</p>
+      <div class="page-heading qr-page-heading">
+        <div>
+          <span class="biz-subtitle">Rentabilidad para tu negocio</span>
+          <h2>Planes y Ahorro</h2>
+          <p>Compara el costo fijo mensual de TacoCards frente al 30% de comisión de las plataformas de delivery.</p>
+        </div>
+        <button type="button" class="theme-toggle-btn" id="plan-theme-toggle" aria-label="Cambiar entre modo claro y oscuro">
+          ${getIconSvg(isDark ? 'sun' : 'moon', 18)}
+          <span>${isDark ? 'Claro' : 'Oscuro'}</span>
+        </button>
       </div>
 
       <div class="plan-cards-stack">
@@ -35,11 +42,12 @@ export function renderPlanPage() {
             <h3>Plan Gratuito</h3>
             <div class="tier-price"><strong>$0</strong> <span>MXN/mes</span></div>
           </div>
-          <p>Presencia básica en el mapa y cartas coleccionables para tus comensales.</p>
+          <p>Presencia activa en el mapa, código QR con emblema personalizado y analítica esencial para conocer a tu clientela.</p>
           <ul class="tier-features">
-            <li>${getIconSvg('check', 14)} Perfil oficial de negocio en el mapa</li>
-            <li>${getIconSvg('check', 14)} Código QR de visitas para caja</li>
-            <li>${getIconSvg('check', 14)} 1 métrica de visitas acumuladas</li>
+            <li>${getIconSvg('check', 16)} Perfil oficial de negocio en el mapa y carta coleccionable</li>
+            <li>${getIconSvg('check', 16)} Código QR de mostrador con logo del negocio o TacoCards</li>
+            <li>${getIconSvg('check', 16)} 3 KPIs clave (Visitas con QR, Clientes únicos y Tasa de retorno)</li>
+            <li>${getIconSvg('check', 16)} 2 gráficas interactivas (Tendencia diaria superpuesta y Retención)</li>
           </ul>
         </article>
 
@@ -52,12 +60,12 @@ export function renderPlanPage() {
             <h3>Plan Destacado</h3>
             <div class="tier-price"><strong>$249</strong> <span>MXN/mes</span></div>
           </div>
-          <p>Fidelización completa, canjes directos en mostrador y analítica de clientes.</p>
+          <p>Fidelización completa, canjes directos en mostrador y analítica avanzada de conversión y ROI.</p>
           <ul class="tier-features">
-            <li>${getIconSvg('check', 14)} Programa de sellos y recompensas exclusivas</li>
-            <li>${getIconSvg('check', 14)} Cupones promocionales en el Pase Taquero</li>
-            <li>${getIconSvg('check', 14)} Dashboard completo con retención de clientes</li>
-            <li>${getIconSvg('check', 14)} Pin destacado y rutas preferenciales en el mapa</li>
+            <li>${getIconSvg('check', 16)} Programa configurable de 8 sellos y recompensas</li>
+            <li>${getIconSvg('check', 16)} Validador de códigos de premio en caja y cupones del Pase</li>
+            <li>${getIconSvg('check', 16)} los 5 KPIs desbloqueados + Embudo de conversión y cálculo de ROI</li>
+            <li>${getIconSvg('check', 16)} Pin destacado y rutas preferenciales en el mapa</li>
           </ul>
           <button type="button" class="button button-primary full-width-btn" id="activate-destacado-btn">
             ${!isFree ? 'Plan Destacado Activo' : 'Subir a Destacado · $249/mes'}
@@ -104,10 +112,14 @@ export function renderPlanPage() {
 
       <div class="plan-actions-footer">
         <button type="button" class="button button-outline full-width-btn" id="see-roi-btn">
-          ${getIconSvg('chart', 16)} Ver desglose en Métricas
+          ${getIconSvg('chart', 18)} Ver desglose en Métricas
         </button>
       </div>
     `;
+
+    container.querySelector('#plan-theme-toggle')?.addEventListener('click', () => {
+      toggleTheme();
+    });
 
     const slider = container.querySelector('#orders-range');
     slider.addEventListener('input', (e) => {

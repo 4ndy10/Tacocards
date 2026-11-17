@@ -123,7 +123,7 @@ function openCouponRedeemModal(coupon, container) {
   `;
 
   const qrSlot = modal.querySelector('#coupon-qr-slot');
-  qrSlot.appendChild(createFakeQR({ small: false }));
+  qrSlot.appendChild(createFakeQR({ small: false, logo: 'TC', sublabel: 'CUPÓN', icon: 'ticket' }));
 
   const closeModal = () => modal.remove();
   modal.querySelector('.sheet-close-btn').addEventListener('click', closeModal);

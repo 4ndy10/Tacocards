@@ -1,10 +1,8 @@
 // ponytail: User profile with volatile in-memory session editing, animated 1.5s checkout simulation, and demo reset
-import { getState, setState, updateVolatileProfile, resetDemoState } from '../../state.js';
+import { getState, setState, updateVolatileProfile, resetDemoState, toggleTheme } from '../../state.js';
 import { getIconSvg } from '../../components/Icon.js';
 
 export function renderProfileView() {
-  const state = getState();
-  const profile = state.userProfile || { name: 'Usuario no registrado', avatar: 'TC', level: 1, isRegistered: false };
   const container = document.createElement('div');
   container.className = 'phone-view standard-view';
 
@@ -12,12 +10,20 @@ export function renderProfileView() {
   let checkoutStep = 'idle'; // 'idle' | 'processing' | 'success'
 
   function render() {
+    const state = getState();
+    const isDark = state.theme === 'dark';
+    const profile = state.userProfile || { name: 'Usuario no registrado', avatar: 'TC', level: 1, isRegistered: false };
+
     container.innerHTML = `
       <header class="phone-heading">
         <div>
           <span>Coleccionista fronterizo</span>
           <h2>Mi perfil</h2>
         </div>
+        <button type="button" class="theme-toggle-btn" id="profile-theme-toggle" aria-label="Alternar entre Modo Claro y Modo Oscuro">
+          ${getIconSvg(isDark ? 'sun' : 'moon', 18)}
+          <span>${isDark ? 'Modo Claro' : 'Modo Oscuro'}</span>
+        </button>
       </header>
 
       <div class="profile-card">
@@ -157,6 +163,10 @@ export function renderProfileView() {
     `;
 
     // Hook events
+    container.querySelector('#profile-theme-toggle')?.addEventListener('click', () => {
+      toggleTheme();
+    });
+
     const editBtn = container.querySelector('#btn-open-edit-profile');
     if (editBtn) {
       editBtn.addEventListener('click', () => {
